@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ephemeral_mail
+      POSTGRES_USER: ephemeral
+      POSTGRES_PASSWORD: ephemeral
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ephemeral -d ephemeral_mail"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      APP_NAME: ${APP_NAME:-Ephemeral Mail API}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: postgresql+psycopg://ephemeral:ephemeral@db:5432/ephemeral_mail
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
